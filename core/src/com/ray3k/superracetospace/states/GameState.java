@@ -31,16 +31,24 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.ray3k.superracetospace.Core;
 import com.ray3k.superracetospace.EntityManager;
 import com.ray3k.superracetospace.InputManager;
 import com.ray3k.superracetospace.State;
+import com.ray3k.superracetospace.entities.BackgroundEntity;
+import com.ray3k.superracetospace.entities.CameraEntity;
+import com.ray3k.superracetospace.entities.StageChangeListener;
+import com.ray3k.superracetospace.entities.StageEntity;
+import com.ray3k.superracetospace.entities.StarEntity;
+import com.ray3k.superracetospace.entities.TowerEntity;
 
 public class GameState extends State {
     private static GameState instance;
@@ -57,6 +65,11 @@ public class GameState extends State {
     public static TextureAtlas spineAtlas;
     public static final float GAME_WIDTH = 800.0f;
     public static final float GAME_HEIGHT = 600.0f;
+    public static int stageNumber;
+    public static int currentStageNumber;
+    public static Array<StageChangeListener> stageChangeListeners = new Array<StageChangeListener>();
+    public static CameraEntity cam;
+    public static Array<StageEntity> stages = new Array<StageEntity>();
     
     public static GameState inst() {
         return instance;
@@ -98,6 +111,33 @@ public class GameState extends State {
         entityManager = new EntityManager();
         
         createStageElements();
+        
+        stageNumber = 0;
+        currentStageNumber = 0;
+        stageChangeListeners.clear();
+        
+        cam = new CameraEntity();
+        cam.setPosition(GAME_WIDTH / 2.0f, GAME_HEIGHT / 2.0f);
+        entityManager.addEntity(cam);
+        
+        BackgroundEntity back = new BackgroundEntity();
+        back.setPosition(0.0f, 0.0f);
+        entityManager.addEntity(back);
+        
+        TowerEntity towerEntity = new TowerEntity();
+        towerEntity.setPosition(200.0f, 0.0f);
+        entityManager.addEntity(towerEntity);
+        
+        for (int i = 1; i <= 5; i++) {
+            StageEntity stageEnt = new StageEntity();
+            stageEnt.setStageNumber(i);
+            stageEnt.setPosition(400.0f, 40.0f + (i - 1) * 67);
+            stageEnt.getSkeleton().findBone("stage").setScaleY((6 - i * .35f) * .2f);
+            stageEnt.setDepth(-100 + i);
+            entityManager.addEntity(stageEnt);
+        }
+        
+        populateStars(0);
     }
     
     private void createStageElements() {
@@ -111,7 +151,7 @@ public class GameState extends State {
     
     @Override
     public void draw(SpriteBatch spriteBatch, float delta) {
-        Gdx.gl.glClearColor(57.0f / 255.0f, 114.0f / 255.0f, 85.0f / 255.0f, 1);
+        Gdx.gl.glClearColor(31.0f / 255.0f, 38.0f / 255.0f, 51.0f / 255.0f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         
         gameCamera.update();
@@ -130,6 +170,20 @@ public class GameState extends State {
         entityManager.act(delta);
         
         stage.act(delta);
+        
+        if (currentStageNumber == stageNumber) {
+            if (Gdx.input.isKeyPressed(Keys.SPACE)) {
+                stageNumber++;
+                
+                for (StageChangeListener listener : stageChangeListeners) {
+                    listener.stageChanged(stageNumber);
+                }
+            }
+        } else {
+            if (!Gdx.input.isKeyPressed(Keys.SPACE)) {
+                currentStageNumber = stageNumber;
+            }
+        }
         
         if (Gdx.input.isKeyPressed(Keys.ESCAPE)) {
             Core.stateManager.loadState("menu");
@@ -203,5 +257,13 @@ public class GameState extends State {
      */
     public void playSound(String name, float volume, float pitch) {
         Core.assetManager.get(Core.DATA_PATH + "/sfx/" + name + ".wav", Sound.class).play(volume, pitch, 0.0f);
+    }
+    
+    public void populateStars(float yLevel) {
+        for (int i = 0; i < 30; i++) {
+            StarEntity star = new StarEntity();
+            star.setPosition(MathUtils.random(0.0f, GAME_WIDTH), MathUtils.random(yLevel, yLevel + GAME_HEIGHT));
+            entityManager.addEntity(star);
+        }
     }
 }

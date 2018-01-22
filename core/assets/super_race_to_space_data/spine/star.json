@@ -1,0 +1,1 @@
+{"skeleton":{"hash":"NLVJ/EZFN2pXsTltxW50gUNaIGE","spine":"3.7.08-beta","width":9,"height":9,"images":"../output/","audio":""},"bones":[{"name":"root"}],"slots":[{"name":"star","bone":"root","attachment":"star"}],"skins":{"default":{"star":{"star":{"width":9,"height":9}}}},"animations":{"animation":{}}}

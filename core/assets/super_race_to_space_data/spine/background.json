@@ -1,0 +1,1 @@
+{"skeleton":{"hash":"zx5H1o1Fy4TLhnyPL2QsQCSvwnU","spine":"3.7.08-beta","width":0,"height":0,"images":"../output/","audio":""},"bones":[{"name":"root"}],"slots":[{"name":"landscape","bone":"root","attachment":"landscape"}],"skins":{"default":{"landscape":{"landscape":{"x":400,"y":177,"width":800,"height":354}}}},"animations":{"animation":{}}}

@@ -15,7 +15,7 @@ button
   index: -1
 button-pressed
   rotate: false
-  xy: 1, 68
+  xy: 1, 71
   size: 213, 79
   split: 25, 26, 26, 26
   pad: 11, 11, 8, 11
@@ -24,9 +24,9 @@ button-pressed
   index: -1
 font-export
   rotate: false
-  xy: 1, 149
-  size: 289, 294
-  orig: 289, 294
+  xy: 1, 152
+  size: 291, 291
+  orig: 291, 291
   offset: 0, 0
   index: -1
 logo
