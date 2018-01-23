@@ -26,6 +26,7 @@ package com.ray3k.superracetospace.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -45,6 +46,7 @@ import com.ray3k.superracetospace.InputManager;
 import com.ray3k.superracetospace.State;
 import com.ray3k.superracetospace.entities.BackgroundEntity;
 import com.ray3k.superracetospace.entities.CameraEntity;
+import com.ray3k.superracetospace.entities.CapsuleEntity;
 import com.ray3k.superracetospace.entities.StageChangeListener;
 import com.ray3k.superracetospace.entities.StageEntity;
 import com.ray3k.superracetospace.entities.StarEntity;
@@ -70,6 +72,8 @@ public class GameState extends State {
     public static Array<StageChangeListener> stageChangeListeners = new Array<StageChangeListener>();
     public static CameraEntity cam;
     public static Array<StageEntity> stages = new Array<StageEntity>();
+    public static CapsuleEntity capsule;
+    public static Music rocketSound;
     
     public static GameState inst() {
         return instance;
@@ -112,6 +116,8 @@ public class GameState extends State {
         
         createStageElements();
         
+        rocketSound = Gdx.audio.newMusic(Gdx.files.local(Core.DATA_PATH + "/sfx/rocket.wav"));
+        
         stageNumber = 0;
         currentStageNumber = 0;
         stageChangeListeners.clear();
@@ -125,7 +131,7 @@ public class GameState extends State {
         entityManager.addEntity(back);
         
         TowerEntity towerEntity = new TowerEntity();
-        towerEntity.setPosition(200.0f, 0.0f);
+        towerEntity.setPosition(280.0f, 0.0f);
         entityManager.addEntity(towerEntity);
         
         for (int i = 1; i <= 5; i++) {
@@ -136,6 +142,10 @@ public class GameState extends State {
             stageEnt.setDepth(-100 + i);
             entityManager.addEntity(stageEnt);
         }
+        
+        capsule = new CapsuleEntity();
+        capsule.setPosition(400.0f, 365.0f);
+        entityManager.addEntity(capsule);
         
         populateStars(0);
     }
@@ -173,10 +183,21 @@ public class GameState extends State {
         
         if (currentStageNumber == stageNumber) {
             if (Gdx.input.isKeyPressed(Keys.SPACE)) {
-                stageNumber++;
+                boolean increment = false;
                 
-                for (StageChangeListener listener : stageChangeListeners) {
-                    listener.stageChanged(stageNumber);
+                for (StageEntity stage : stages) {
+                    if (stage.getMode() == StageEntity.Mode.STATIONARY || stage.getAnimationState().getCurrent(0).getAnimation().getName().equals("deplete")) {
+                        increment = true;
+                        break;
+                    }
+                }
+                
+                if (increment) {
+                    stageNumber++;
+
+                    for (StageChangeListener listener : stageChangeListeners) {
+                        listener.stageChanged(stageNumber);
+                    }
                 }
             }
         } else {

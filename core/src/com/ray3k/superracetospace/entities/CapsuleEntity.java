@@ -25,56 +25,29 @@
 package com.ray3k.superracetospace.entities;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.esotericsoftware.spine.AnimationState;
 import com.ray3k.superracetospace.Core;
 import com.ray3k.superracetospace.Entity;
 import com.ray3k.superracetospace.SpineEntity;
 import com.ray3k.superracetospace.states.GameState;
 import static com.ray3k.superracetospace.states.GameState.stageChangeListeners;
-import static com.ray3k.superracetospace.states.GameState.stages;
 
-public class StageEntity extends SpineEntity implements StageChangeListener{
-    private int stageNumber;
-    private float counterDelay;
+public class CapsuleEntity extends SpineEntity implements StageChangeListener {
+    private MoonEntity moon;
+    private ParticleEntity particleEntity;
+    
     public static enum Mode {
-        STATIONARY, FLYING, FALLING
+        STATIONARY, FLYING, FALLING, QUEUE_DEATH
     }
     private Mode mode;
-    private ParticleEntity particleEntity;
 
-    public StageEntity() {
-        super(Core.DATA_PATH + "/spine/stage.json", "normal");
-        stageChangeListeners.add(this);
-        stages.add(this);
+    public CapsuleEntity() {
+        super(Core.DATA_PATH + "/spine/capsule.json", "normal");
         
-        getAnimationState().addListener(new AnimationState.AnimationStateAdapter() {
-            @Override
-            public void complete(AnimationState.TrackEntry entry) {
-                String name = entry.getAnimation().getName();
-                if (name.equals("discard")) {
-                    StageEntity.this.dispose();
-                } else if (name.equals("deplete")) {
-                    GameState.cam.setTarget(null);
-                    for (StageEntity stage : GameState.stages) {
-                        stage.setMode(Mode.FALLING);
-                    }
-                    GameState.capsule.setMode(CapsuleEntity.Mode.FALLING);
-                    GameState.entityManager.addEntity(new GameOverTimerEntity(3.5f));
-                    GameState.stageChangeListeners.clear();
-                    
-                    if (particleEntity != null) {
-                        particleEntity.dispose();
-                    }
-                    
-                    GameState.inst().playSound("lose");
-                }
-            }
-        });
+        stageChangeListeners.add(this);
         
         getAnimationState().getData().setDefaultMix(0.0f);
-        
-        counterDelay = -1;
         mode = Mode.STATIONARY;
+        setDepth(-90);
     }
 
     @Override
@@ -83,7 +56,7 @@ public class StageEntity extends SpineEntity implements StageChangeListener{
             particleEntity.setPosition(getX(), getY());
         }
         
-        if (mode == Mode.FLYING) {
+        if (mode == Mode.FLYING || mode == Mode.QUEUE_DEATH) {
             addMotion(100.0f * delta, 90.0f);
             if (getSpeed() > 1000.0f) {
                 setMotion(1000.0f, 90.0f);
@@ -95,14 +68,23 @@ public class StageEntity extends SpineEntity implements StageChangeListener{
             }
         }
         
-        if (counterDelay > 0) {
-            counterDelay -= delta;
-            if (counterDelay <= 0) {
-                getAnimationState().setAnimation(0, "deplete", false);
-                getAnimationState().setTimeScale(.075f + stageNumber * .22f);
+        if (mode == Mode.QUEUE_DEATH) {
+            if (getY() > GameState.cam.getY() + GameState.GAME_HEIGHT / 2.0f + 1000.0f) {
+                if (particleEntity != null) {
+                    particleEntity.dispose();
+                }
+                
+                dispose();
+                
+                if (moon != null) {
+                    moon.getAnimationState().setAnimation(0, "win", false);
+                } else {
+                    GameState.entityManager.addEntity(new GameOverTimerEntity(3.0f));
+                }
+                
+                GameState.rocketSound.stop();
             }
         }
-        
     }
 
     @Override
@@ -111,7 +93,6 @@ public class StageEntity extends SpineEntity implements StageChangeListener{
 
     @Override
     public void create() {
-        
     }
 
     @Override
@@ -126,49 +107,33 @@ public class StageEntity extends SpineEntity implements StageChangeListener{
     public void collision(Entity other) {
     }
 
-    public int getStageNumber() {
-        return stageNumber;
-    }
-
-    public void setStageNumber(int stageNumber) {
-        this.stageNumber = stageNumber;
-    }
-
     @Override
     public void stageChanged(int stage) {
         if (stage == 1) {
             mode = Mode.FLYING;
+            GameState.rocketSound.setLooping(true);
+            GameState.rocketSound.play();
         }
         
-        if (stage == stageNumber) {
+        if (stage == 6) {
             particleEntity = new ParticleEntity(Core.DATA_PATH + "/particles/thrust.p");
             particleEntity.setPosition(getX(), getY());
             particleEntity.getEffect().setEmittersCleanUpBlendFunction(false);
             particleEntity.setDepth(getDepth() + 1);
             GameState.entityManager.addEntity(particleEntity);
-        
+            
             GameState.cam.setTarget(this);
-            if (stage == 1) {
-                counterDelay = 3.0f;
+            
+            if (GameState.inst().getScore() > 430.0f) {
+                moon = new MoonEntity();
+                moon.setPosition(getX(), GameState.cam.getY() + GameState.GAME_HEIGHT / 2.0f + 200.0f);
+                GameState.entityManager.addEntity(moon);
+                GameState.cam.setTarget(moon);
             } else {
-                counterDelay = .5f;
+                GameState.cam.setTarget(null);
             }
-        } else if (stage > stageNumber) {
-            if (!getAnimationState().getCurrent(0).getAnimation().getName().equals("discard")) {
-                if (getAnimationState().getCurrent(0).getAnimationTime() > .75f) {
-                    GameState.inst().playSound("win");
-                } else {
-                    GameState.inst().playSound("detach");
-                }
-                
-                GameState.inst().addScore((int) (getAnimationState().getCurrent(0).getAnimationTime() * 100));
-                getAnimationState().setAnimation(0, "discard", false);
-                getAnimationState().setTimeScale(1.0f);
-                
-                if (particleEntity != null) {
-                    particleEntity.dispose();
-                }
-            }
+            
+            mode = Mode.QUEUE_DEATH;
         }
     }
 
@@ -178,5 +143,8 @@ public class StageEntity extends SpineEntity implements StageChangeListener{
 
     public void setMode(Mode mode) {
         this.mode = mode;
+        if (mode == Mode.FALLING) {
+            GameState.rocketSound.stop();
+        }
     }
 }

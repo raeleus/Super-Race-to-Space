@@ -26,10 +26,12 @@ package com.ray3k.superracetospace;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.ParticleEffectLoader.ParticleEffectParameter;
 import com.badlogic.gdx.assets.loaders.resolvers.LocalFileHandleResolver;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -208,6 +210,13 @@ public class Core extends ApplicationAdapter {
         directory = Gdx.files.local(DATA_PATH + "/sfx");
         for (FileHandle file : directory.list()) {
             assetManager.load(file.path(), Sound.class);
+        }
+        
+        directory = Gdx.files.local(DATA_PATH + "/particles");
+        ParticleEffectParameter parameter = new ParticleEffectParameter();
+        parameter.atlasFile = DATA_PATH + "/spine/Super Race To Space.atlas";
+        for (FileHandle file : directory.list("p")) {
+            assetManager.load(file.path(), ParticleEffect.class, parameter);
         }
         
         for (String packName : imagePacks.keys()) {
